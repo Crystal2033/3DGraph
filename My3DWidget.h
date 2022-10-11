@@ -8,7 +8,6 @@
 #include "TransformMatrix.h"
 #define THETA_ADDITIONAL 0.002
 
-
 class My3DWidget  : public QWidget
 {
 	Q_OBJECT
@@ -24,7 +23,8 @@ private:
 	void createLine();
 	void makeProjTransform();
 	void updateRotateMatrixes();
-	void drawTriangle(const GraphicPrimitives::Triangle& trianle);
+	void drawTriangle(const GraphicPrimitives::Triangle& trianle, const Qt::PenStyle style);
+
 	void drawTriangle(const int x0, const int y0, const int x1, const int y1, const int x2, const int y2);
 	glm::vec4 makeMultiplication(const glm::vec4& point, const glm::mat4x4& matrix);
 	void initFigure();
@@ -37,6 +37,8 @@ private:
 		0,0,0,0,
 		0,0,0,0
 	};
+
+	glm::vec3 camera = { 0,0,0 };
 
 	RotateMatrix* xRotateMatrix = nullptr;
 	RotateMatrix* yRotateMatrix = nullptr;

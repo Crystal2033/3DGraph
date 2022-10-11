@@ -8,7 +8,7 @@ My3DWidget::My3DWidget(QWidget *parent)
 	xRotateMatrix = new XRotateMatrix();
 	yRotateMatrix = new YRotateMatrix();
 	zRotateMatrix = new ZRotateMatrix();
-	projectionMatrix = new ProjectionMatrix(900.0f, 1000.0f, 90.0f, (float)height() / (float)width());
+	projectionMatrix = new ProjectionMatrix(0.1f, 1000.0f, 90.0f, (float)height() / (float)width());
 
 	initFigure();
 	setBackColor(Qt::black);
@@ -51,50 +51,79 @@ void My3DWidget::makeProjTransform() {
 	for (auto& triangle : myFigure.mesh.triangles) {
 		GraphicPrimitives::Triangle projectedTrianle, translatedTrianle, triangleRotatedZ, triangleRotatedXZ;
 
-		/*triangleRotatedZ.points[0] = makeMultiplication(triangle.points[0], rotateMatrixZ);
-		triangleRotatedZ.points[1] = makeMultiplication(triangle.points[1], rotateMatrixZ);
-		triangleRotatedZ.points[2] = makeMultiplication(triangle.points[2], rotateMatrixZ);*/
-
-		triangleRotatedZ.points[0] = zRotateMatrix->makeTransform(triangle.points[0]);
+		for (int i = 0; i < 3; i++) {
+			triangleRotatedZ.points[i] = zRotateMatrix->makeTransform(triangle.points[i]);
+		}
+		/*triangleRotatedZ.points[0] = zRotateMatrix->makeTransform(triangle.points[0]);
 		triangleRotatedZ.points[1] = zRotateMatrix->makeTransform(triangle.points[1]);
-		triangleRotatedZ.points[2] = zRotateMatrix->makeTransform(triangle.points[2]);
+		triangleRotatedZ.points[2] = zRotateMatrix->makeTransform(triangle.points[2]);*/
 
-		/*triangleRotatedXZ.points[0] = makeMultiplication(triangleRotatedZ.points[0], rotateMatrixX);
-		triangleRotatedXZ.points[1] = makeMultiplication(triangleRotatedZ.points[1], rotateMatrixX);
-		triangleRotatedXZ.points[2] = makeMultiplication(triangleRotatedZ.points[2], rotateMatrixX);*/
-
-		triangleRotatedXZ.points[0] = xRotateMatrix->makeTransform(triangleRotatedZ.points[0]);
+		for (int i = 0; i < 3; i++) {
+			triangleRotatedXZ.points[i] = xRotateMatrix->makeTransform(triangleRotatedZ.points[i]);
+		}
+		/*triangleRotatedXZ.points[0] = xRotateMatrix->makeTransform(triangleRotatedZ.points[0]);
 		triangleRotatedXZ.points[1] = xRotateMatrix->makeTransform(triangleRotatedZ.points[1]);
-		triangleRotatedXZ.points[2] = xRotateMatrix->makeTransform(triangleRotatedZ.points[2]);
+		triangleRotatedXZ.points[2] = xRotateMatrix->makeTransform(triangleRotatedZ.points[2]);*/
 
 		translatedTrianle = triangleRotatedXZ;
-		translatedTrianle.points[0].z = triangleRotatedXZ.points[0].z + 3.0f;
+		for (int i = 0; i < 3; i++) {
+			translatedTrianle.points[i].z = triangleRotatedXZ.points[i].z + 5.0f;
+		}
+		glm::vec3 normal, line1, line2;
+		line1.x = translatedTrianle.points[1].x - translatedTrianle.points[0].x;
+		line1.y = translatedTrianle.points[1].y - translatedTrianle.points[0].y;
+		line1.z = translatedTrianle.points[1].z - translatedTrianle.points[0].z;
+
+		line2.x = translatedTrianle.points[2].x - translatedTrianle.points[0].x;
+		line2.y = translatedTrianle.points[2].y - translatedTrianle.points[0].y;
+		line2.z = translatedTrianle.points[2].z - translatedTrianle.points[0].z;
+
+		normal = glm::cross(line1, line2);
+		float normalLen = sqrtf(normal.x * normal.x + normal.y * normal.y + normal.z * normal.z);
+		normal.x /= normalLen; normal.y /= normalLen; normal.z /= normalLen;
+		/*translatedTrianle.points[0].z = triangleRotatedXZ.points[0].z + 3.0f;
 		translatedTrianle.points[1].z = triangleRotatedXZ.points[1].z + 3.0f;
-		translatedTrianle.points[2].z = triangleRotatedXZ.points[2].z + 3.0f;
+		translatedTrianle.points[2].z = triangleRotatedXZ.points[2].z + 3.0f;*/
+		float visitedFactorNumber =
+			normal.x * (translatedTrianle.points[0].x - camera.x) +
+			normal.y * (translatedTrianle.points[0].y - camera.y) +
+			normal.z * (translatedTrianle.points[0].z - camera.z);
+									
 
-		/*projectedTrianle.points[0] = makeMultiplication(translatedTrianle.points[0], matrixProj);
-		projectedTrianle.points[1] = makeMultiplication(translatedTrianle.points[1], matrixProj);
-		projectedTrianle.points[2] = makeMultiplication(translatedTrianle.points[2], matrixProj);*/
-		projectedTrianle.points[0] = projectionMatrix->makeTransform(translatedTrianle.points[0]);
-		projectedTrianle.points[1] = projectionMatrix->makeTransform(translatedTrianle.points[1]);
-		projectedTrianle.points[2] = projectionMatrix->makeTransform(translatedTrianle.points[2]);
+		if (visitedFactorNumber < 0) {
+			for (int i = 0; i < 3; i++) {
+				projectedTrianle.points[i] = projectionMatrix->makeTransform(translatedTrianle.points[i]);
+			}
+			/*projectedTrianle.points[0] = projectionMatrix->makeTransform(translatedTrianle.points[0]);
+			projectedTrianle.points[1] = projectionMatrix->makeTransform(translatedTrianle.points[1]);
+			projectedTrianle.points[2] = projectionMatrix->makeTransform(translatedTrianle.points[2]);*/
 
-		projectedTrianle.points[0].x += 1.0f; projectedTrianle.points[0].y += 1.0f;
-		projectedTrianle.points[1].x += 1.0f; projectedTrianle.points[1].y += 1.0f;
-		projectedTrianle.points[2].x += 1.0f; projectedTrianle.points[2].y += 1.0f;
+			for (int i = 0; i < 3; i++) {
+				projectedTrianle.points[i].x += 1.0f;
+				projectedTrianle.points[i].y += 1.0f;
+			}
+			/*projectedTrianle.points[0].x += 1.0f; projectedTrianle.points[0].y += 1.0f;
+			projectedTrianle.points[1].x += 1.0f; projectedTrianle.points[1].y += 1.0f;
+			projectedTrianle.points[2].x += 1.0f; projectedTrianle.points[2].y += 1.0f;*/
 
-		projectedTrianle.points[0].x *= 0.5f * (float)width();
-		projectedTrianle.points[0].y *= 0.5f * (float)height();
-		projectedTrianle.points[1].x *= 0.5f * (float)width();
-		projectedTrianle.points[1].y *= 0.5f * (float)height();
-		projectedTrianle.points[2].x *= 0.5f * (float)width();
-		projectedTrianle.points[2].y *= 0.5f * (float)height();
+			for (int i = 0; i < 3; i++) {
+				projectedTrianle.points[i].x *= 0.5f * (float)width();
+				projectedTrianle.points[i].y *= 0.5f * (float)height();
+			}
+			/*projectedTrianle.points[0].x *= 0.5f * (float)width();
+			projectedTrianle.points[0].y *= 0.5f * (float)height();
+			projectedTrianle.points[1].x *= 0.5f * (float)width();
+			projectedTrianle.points[1].y *= 0.5f * (float)height();
+			projectedTrianle.points[2].x *= 0.5f * (float)width();
+			projectedTrianle.points[2].y *= 0.5f * (float)height();*/
 
-		drawTriangle(projectedTrianle);
+			drawTriangle(projectedTrianle, Qt::SolidLine);
+		}
 	}
 }
 
-void My3DWidget::drawTriangle(const GraphicPrimitives::Triangle& trianle) {
+void My3DWidget::drawTriangle(const GraphicPrimitives::Triangle& trianle, const Qt::PenStyle style) {
+	Q_UNUSED(style);
 	painter.drawLine(trianle.points[0].x, trianle.points[0].y, trianle.points[1].x, trianle.points[1].y);
 	painter.drawLine(trianle.points[1].x, trianle.points[1].y, trianle.points[2].x, trianle.points[2].y);
 	painter.drawLine(trianle.points[2].x, trianle.points[2].y, trianle.points[0].x, trianle.points[0].y);
@@ -140,7 +169,7 @@ void My3DWidget::initFigure() {
 	glm::vec4 bottom1[] = { glm::vec4(1.0f, 0.0f, 1.0f, 1.0f), glm::vec4(0.0f, 0.0f, 1.0f, 1.0f) , glm::vec4(0.0f, 0.0f, 0.0f, 1.0f) };
 	glm::vec4 bottom2[] = { glm::vec4(1.0f, 0.0f, 1.0f, 1.0f), glm::vec4(0.0f, 0.0f, 0.0f, 1.0f) , glm::vec4(1.0f, 0.0f, 0.0f, 1.0f) };
 
-	this->myFigure.addNewTriangle(south1);
+	/*this->myFigure.addNewTriangle(south1);
 	this->myFigure.addNewTriangle(south2);
 
 	this->myFigure.addNewTriangle(east1);
@@ -156,7 +185,9 @@ void My3DWidget::initFigure() {
 	this->myFigure.addNewTriangle(top2);
 
 	this->myFigure.addNewTriangle(bottom1);
-	this->myFigure.addNewTriangle(bottom2);
+	this->myFigure.addNewTriangle(bottom2);*/
+	this->myFigure.LoadFromObjectFile("PsevdoPyramid.obj");
+
 
 	/*float fNear = 0.1f;
 	float fFar = 1000.0f;
