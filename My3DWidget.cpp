@@ -5,11 +5,6 @@
 My3DWidget::My3DWidget(QWidget *parent)
 	: QWidget(parent)
 {
-	xRotateMatrix = new XRotateMatrix();
-	yRotateMatrix = new YRotateMatrix();
-	zRotateMatrix = new ZRotateMatrix();
-	projectionMatrix = new ProjectionMatrix(0.1f, 1000.0f, 90.0f, (float)height() / (float)width());
-
 	initFigure();
 	setBackColor(Qt::black);
 	pen.setColor(Qt::white);
@@ -39,87 +34,77 @@ void My3DWidget::paintEvent(QPaintEvent* event)
 void My3DWidget::makeProjTransform() {
 	GraphicPrimitives::Triangle projectedTrianle;
 
-
 	fTheta += 1.0f * THETA_ADDITIONAL;
 
-
-	xRotateMatrix->updateMatrix(fTheta);
-	yRotateMatrix->updateMatrix(fTheta);
-	zRotateMatrix->updateMatrix(fTheta);
+	glm::mat4x4 xRot = XRotateMatrix::getRotateMatrix(fTheta*0.5f);
+	glm::mat4x4 yRot = YRotateMatrix::getRotateMatrix(fTheta);
+	glm::mat4x4 zRot = ZRotateMatrix::getRotateMatrix(fTheta);
 	
+	//std::vector<GraphicPrimitives::Triangle> trianglesToRaster;
+	glm::mat4x4 projMatrix = ProjectionMatrix::getProjMatrix(0.1f, 1000.0f, 90.0f, (float)height() / (float)width());
 
 	for (auto& triangle : myFigure.mesh.triangles) {
-		GraphicPrimitives::Triangle projectedTrianle, translatedTrianle, triangleRotatedZ, triangleRotatedXZ;
+		GraphicPrimitives::Triangle projectedTrianle, translatedTrianle, triangleRotatedXZ;
 
+		glm::mat4x4 XZRotation = xRot *zRot  ;
+		
 		for (int i = 0; i < 3; i++) {
-			triangleRotatedZ.points[i] = zRotateMatrix->makeTransform(triangle.points[i]);
+			triangleRotatedXZ.points[i] = triangle.points[i] * glm::transpose(XZRotation);
 		}
-		/*triangleRotatedZ.points[0] = zRotateMatrix->makeTransform(triangle.points[0]);
-		triangleRotatedZ.points[1] = zRotateMatrix->makeTransform(triangle.points[1]);
-		triangleRotatedZ.points[2] = zRotateMatrix->makeTransform(triangle.points[2]);*/
-
-		for (int i = 0; i < 3; i++) {
-			triangleRotatedXZ.points[i] = xRotateMatrix->makeTransform(triangleRotatedZ.points[i]);
-		}
-		/*triangleRotatedXZ.points[0] = xRotateMatrix->makeTransform(triangleRotatedZ.points[0]);
-		triangleRotatedXZ.points[1] = xRotateMatrix->makeTransform(triangleRotatedZ.points[1]);
-		triangleRotatedXZ.points[2] = xRotateMatrix->makeTransform(triangleRotatedZ.points[2]);*/
 
 		translatedTrianle = triangleRotatedXZ;
+		
+		glm::mat4x4 matTranslate = glm::translate(glm::mat4x4(1.0f), glm::vec3(0.f, 0.f, 8.f));
 		for (int i = 0; i < 3; i++) {
-			translatedTrianle.points[i].z = triangleRotatedXZ.points[i].z + 5.0f;
+			translatedTrianle.points[i] = matTranslate * translatedTrianle.points[i];
 		}
-		glm::vec3 normal, line1, line2;
-		line1.x = translatedTrianle.points[1].x - translatedTrianle.points[0].x;
-		line1.y = translatedTrianle.points[1].y - translatedTrianle.points[0].y;
-		line1.z = translatedTrianle.points[1].z - translatedTrianle.points[0].z;
 
-		line2.x = translatedTrianle.points[2].x - translatedTrianle.points[0].x;
-		line2.y = translatedTrianle.points[2].y - translatedTrianle.points[0].y;
-		line2.z = translatedTrianle.points[2].z - translatedTrianle.points[0].z;
-
-		normal = glm::cross(line1, line2);
-		float normalLen = sqrtf(normal.x * normal.x + normal.y * normal.y + normal.z * normal.z);
-		normal.x /= normalLen; normal.y /= normalLen; normal.z /= normalLen;
-		/*translatedTrianle.points[0].z = triangleRotatedXZ.points[0].z + 3.0f;
-		translatedTrianle.points[1].z = triangleRotatedXZ.points[1].z + 3.0f;
-		translatedTrianle.points[2].z = triangleRotatedXZ.points[2].z + 3.0f;*/
-		float visitedFactorNumber =
-			normal.x * (translatedTrianle.points[0].x - camera.x) +
-			normal.y * (translatedTrianle.points[0].y - camera.y) +
-			normal.z * (translatedTrianle.points[0].z - camera.z);
-									
-
-		if (visitedFactorNumber < 0) {
+		if (getVisibleNumber(translatedTrianle) < 0) {
 			for (int i = 0; i < 3; i++) {
-				projectedTrianle.points[i] = projectionMatrix->makeTransform(translatedTrianle.points[i]);
+				projectedTrianle.points[i] = translatedTrianle.points[i] * glm::transpose(projMatrix);
+
+				if (projectedTrianle.points[i].w != 0.0f) {
+					projectedTrianle.points[i] /= projectedTrianle.points[i].w;
+				}
 			}
-			/*projectedTrianle.points[0] = projectionMatrix->makeTransform(translatedTrianle.points[0]);
-			projectedTrianle.points[1] = projectionMatrix->makeTransform(translatedTrianle.points[1]);
-			projectedTrianle.points[2] = projectionMatrix->makeTransform(translatedTrianle.points[2]);*/
+			
+			glm::mat4x4 matTranslateWindow = glm::translate(glm::mat4x4(1.0f), glm::vec3(1.f, 1.f, 0.f));
+			for (int i = 0; i < 3; i++) {
+				projectedTrianle.points[i] = matTranslateWindow * projectedTrianle.points[i];
+			}
 
 			for (int i = 0; i < 3; i++) {
-				projectedTrianle.points[i].x += 1.0f;
-				projectedTrianle.points[i].y += 1.0f;
-			}
-			/*projectedTrianle.points[0].x += 1.0f; projectedTrianle.points[0].y += 1.0f;
-			projectedTrianle.points[1].x += 1.0f; projectedTrianle.points[1].y += 1.0f;
-			projectedTrianle.points[2].x += 1.0f; projectedTrianle.points[2].y += 1.0f;*/
 
-			for (int i = 0; i < 3; i++) {
-				projectedTrianle.points[i].x *= 0.5f * (float)width();
-				projectedTrianle.points[i].y *= 0.5f * (float)height();
+				projectedTrianle.points[i] = projectedTrianle.points[i] * glm::vec4(0.5f * (float)width(), 0.5f * (float)height(), 0.0f, 0.0f);
 			}
-			/*projectedTrianle.points[0].x *= 0.5f * (float)width();
-			projectedTrianle.points[0].y *= 0.5f * (float)height();
-			projectedTrianle.points[1].x *= 0.5f * (float)width();
-			projectedTrianle.points[1].y *= 0.5f * (float)height();
-			projectedTrianle.points[2].x *= 0.5f * (float)width();
-			projectedTrianle.points[2].y *= 0.5f * (float)height();*/
-
+			//trianglesToRaster.push_back(projectedTrianle);
 			drawTriangle(projectedTrianle, Qt::SolidLine);
 		}
+		
 	}
+	/*std::sort(trianglesToRaster.begin(), trianglesToRaster.end(), [](GraphicPrimitives::Triangle& t1, GraphicPrimitives::Triangle& t2) {
+		float middleZFirst = (t1.points[0].z + t1.points[1].z + t1.points[2].z) / 3.0f;
+		float middleZSecond = (t2.points[0].z + t2.points[1].z + t2.points[2].z) / 3.0f;
+		return middleZFirst > middleZSecond;
+		});
+
+	for (auto& triangle : trianglesToRaster) {
+		drawTriangle(triangle, Qt::SolidLine);
+	}*/
+}
+
+float My3DWidget::getVisibleNumber(const GraphicPrimitives::Triangle& triangle){
+	glm::vec3 normal(1.0f), line1, line2;
+	line1 = triangle.points[1] - triangle.points[0];
+
+	line2 = triangle.points[2] - triangle.points[0];
+
+	normal = glm::cross(line1,line2);
+	normal = glm::normalize(normal);
+
+	float visitedFactorNumber = glm::dot(normal, glm::vec3(triangle.points[0]) - glm::vec3(camera));
+
+	return visitedFactorNumber;
 }
 
 void My3DWidget::drawTriangle(const GraphicPrimitives::Triangle& trianle, const Qt::PenStyle style) {
@@ -146,71 +131,11 @@ glm::vec4 My3DWidget::makeMultiplication(const glm::vec4& point, const glm::mat4
 	return result;
 }
 
-void My3DWidget::createLine() {
-	//painter.drawLine(0, 0, 100, 100);
-}
 
 void My3DWidget::initFigure() {
-	glm::vec4 south1[] = {glm::vec4(0.0f, 0.0f, 0.0f, 1.0f), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f) , glm::vec4(1.0f, 1.0f, 0.0f, 1.0f)};
-	glm::vec4 south2[] = {glm::vec4(0.0f, 0.0f, 0.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) , glm::vec4(1.0f, 0.0f, 0.0f, 1.0f)};
-			
-	glm::vec4 east1[] = {glm::vec4(1.0f, 0.0f, 0.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) , glm::vec4(1.0f, 1.0f, 1.0f, 1.0f) };
-	glm::vec4 east2[] = {glm::vec4(1.0f, 0.0f, 0.0f, 1.0f), glm::vec4(1.0f, 1.0f, 1.0f, 1.0f) , glm::vec4(1.0f, 0.0f, 1.0f, 1.0f) };
-			
-	glm::vec4 north1[] = { glm::vec4(1.0f, 0.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 1.0f, 1.0f) , glm::vec4(0.0f, 1.0f, 1.0f, 1.0f) };
-	glm::vec4 north2[] = { glm::vec4(1.0f, 0.0f, 1.0f, 1.0f), glm::vec4(0.0f, 1.0f, 1.0f, 1.0f) , glm::vec4(0.0f, 0.0f, 1.0f, 1.0f) };
-			
-	glm::vec4 west1[] = { glm::vec4(0.0f, 0.0f, 1.0f, 1.0f), glm::vec4(0.0f, 1.0f, 1.0f, 1.0f) , glm::vec4(0.0f, 1.0f, 0.0f, 1.0f) };
-	glm::vec4 west2[] = { glm::vec4(0.0f, 0.0f, 1.0f, 1.0f), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f) , glm::vec4(0.0f, 0.0f, 0.0f, 1.0f) };
-			
-	glm::vec4 top1[] = { glm::vec4(0.0f, 1.0f, 0.0f, 1.0f), glm::vec4(0.0f, 1.0f, 1.0f, 1.0f) , glm::vec4(1.0f, 1.0f, 1.0f, 1.0f) };
-	glm::vec4 top2[] = { glm::vec4(0.0f, 1.0f, 0.0f, 1.0f), glm::vec4(1.0f, 1.0f, 1.0f, 1.0f) , glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) };
-			
-	glm::vec4 bottom1[] = { glm::vec4(1.0f, 0.0f, 1.0f, 1.0f), glm::vec4(0.0f, 0.0f, 1.0f, 1.0f) , glm::vec4(0.0f, 0.0f, 0.0f, 1.0f) };
-	glm::vec4 bottom2[] = { glm::vec4(1.0f, 0.0f, 1.0f, 1.0f), glm::vec4(0.0f, 0.0f, 0.0f, 1.0f) , glm::vec4(1.0f, 0.0f, 0.0f, 1.0f) };
-
-	/*this->myFigure.addNewTriangle(south1);
-	this->myFigure.addNewTriangle(south2);
-
-	this->myFigure.addNewTriangle(east1);
-	this->myFigure.addNewTriangle(east2);
-
-	this->myFigure.addNewTriangle(north1);
-	this->myFigure.addNewTriangle(north2);
-
-	this->myFigure.addNewTriangle(west1);
-	this->myFigure.addNewTriangle(west2);
-
-	this->myFigure.addNewTriangle(top1);
-	this->myFigure.addNewTriangle(top2);
-
-	this->myFigure.addNewTriangle(bottom1);
-	this->myFigure.addNewTriangle(bottom2);*/
-	this->myFigure.LoadFromObjectFile("PsevdoPyramid.obj");
-
-
-	/*float fNear = 0.1f;
-	float fFar = 1000.0f;
-	float fFov = 90.0f;
-	float fAspectRation = (float)height() / (float)width();
-	float fFovRad = 1.0f / tanf(fFov * 0.5f / 180.0f * 3.14159f);
-
-	matrixProj[0][0] = fAspectRation * fFovRad;
-	matrixProj[1][1] = fFovRad;
-	matrixProj[2][2] = fFar / (fFar - fNear);
-	matrixProj[3][2] = (-fFar * fNear) / (fFar - fNear);
-	matrixProj[2][3] = 1.0f;
-	matrixProj[3][3] = 0.0f;*/
-
-	//matrixProj = glm::transpose(matrixProj);
-
+	this->myFigure.LoadFromObjectFile("Ship.txt");
 }
 
-My3DWidget::~My3DWidget()
-{
+My3DWidget::~My3DWidget(){
 	delete palette;
-	delete xRotateMatrix;
-	delete yRotateMatrix;
-	delete zRotateMatrix;
-	delete projectionMatrix;
 }

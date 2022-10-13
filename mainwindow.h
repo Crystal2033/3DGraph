@@ -14,11 +14,8 @@ public:
     ~mainwindow();
 
 private:
-    //METHODS
     void setBackColor(const QColor& color);
 
-
-    //VARIABLES
     Ui::mainwindowClass ui;
     QVBoxLayout* mainLayout = nullptr;
     QPalette* palette = nullptr;

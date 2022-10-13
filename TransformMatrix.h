@@ -1,5 +1,7 @@
 #pragma once
 #include <glm.hpp>
+#include <gtc/matrix_transform.hpp>
+
 class TransformMatrix {
 public:
 	TransformMatrix() = default;
@@ -15,22 +17,10 @@ protected:
 
 };
 
-//float fNear = 0.1f;
-//float fFar = 1000.0f;
-//float fFov = 90.0f;
-//float fAspectRation = (float)height() / (float)width();
-//float fFovRad = 1.0f / tanf(fFov * 0.5f / 180.0f * 3.14159f);
-//
-//matrixProj[0][0] = fAspectRation * fFovRad;
-//matrixProj[1][1] = fFovRad;
-//matrixProj[2][2] = fFar / (fFar - fNear);
-//matrixProj[3][2] = (-fFar * fNear) / (fFar - fNear);
-//matrixProj[2][3] = 1.0f;
-//matrixProj[3][3] = 0.0f;
-
 class ProjectionMatrix : public TransformMatrix {
 public:
 	ProjectionMatrix(const float zNear, const float zFar, const float fovAngle, const float aRatio);
+	static glm::mat4x4 getProjMatrix(const float zNear, const float zFar, const float fovAngle, const float aRatio);
 	glm::vec4 makeTransform(const glm::vec4& points) const override;
 	~ProjectionMatrix() = default;
 };
@@ -51,6 +41,7 @@ class XRotateMatrix : public RotateMatrix {
 public:
 	XRotateMatrix() = default;
 	void updateMatrix(const float fTheta) override;
+	static glm::mat4x4 getRotateMatrix(const float fTheta);
 	~XRotateMatrix() = default;
 };
 
@@ -58,6 +49,7 @@ class YRotateMatrix : public RotateMatrix {
 public:
 	YRotateMatrix() = default;
 	void updateMatrix(const float fTheta) override;
+	static glm::mat4x4 getRotateMatrix(const float fTheta);
 	~YRotateMatrix() = default;
 };
 
@@ -65,5 +57,6 @@ class ZRotateMatrix : public RotateMatrix {
 public:
 	ZRotateMatrix() = default;
 	void updateMatrix(const float fTheta) override;
+	static glm::mat4x4 getRotateMatrix(const float fTheta);
 	~ZRotateMatrix() = default;
 };
