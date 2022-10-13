@@ -34,7 +34,7 @@ void My3DWidget::paintEvent(QPaintEvent* event)
 void My3DWidget::makeProjTransform() {
 	GraphicPrimitives::Triangle projectedTrianle;
 
-	fTheta += 1.0f * THETA_ADDITIONAL;
+	//fTheta += 1.0f * THETA_ADDITIONAL;
 
 	glm::mat4x4 xRot = XRotateMatrix::getRotateMatrix(xFTheta * (M_PI / 180) );
 	glm::mat4x4 yRot = YRotateMatrix::getRotateMatrix(yFTheta * (M_PI / 180));
@@ -44,15 +44,15 @@ void My3DWidget::makeProjTransform() {
 	glm::mat4x4 projMatrix = ProjectionMatrix::getProjMatrix(0.1f, 1000.0f, 90.0f, (float)height() / (float)width());
 
 	for (auto& triangle : myFigure.mesh.triangles) {
-		GraphicPrimitives::Triangle projectedTrianle, translatedTrianle, triangleRotatedXZ;
+		GraphicPrimitives::Triangle projectedTrianle, translatedTrianle, triangleRotatedXYZ;
 
-		glm::mat4x4 XYZRotation = xRot *yRot *zRot  ;
+		glm::mat4x4 XYZRotation = xRot *yRot *zRot ;
 		
 		for (int i = 0; i < 3; i++) {
-			triangleRotatedXZ.points[i] = triangle.points[i] * glm::transpose(XYZRotation);
+			triangleRotatedXYZ.points[i] = triangle.points[i] * glm::transpose(XYZRotation);
 		}
 
-		translatedTrianle = triangleRotatedXZ;
+		translatedTrianle = triangleRotatedXYZ;
 		
 		glm::mat4x4 matTranslate = glm::translate(glm::mat4x4(1.0f), glm::vec3(0.f, 0.f, 3.f));
 		for (int i = 0; i < 3; i++) {
@@ -133,7 +133,7 @@ glm::vec4 My3DWidget::makeMultiplication(const glm::vec4& point, const glm::mat4
 
 
 void My3DWidget::initFigure() {
-	this->myFigure.LoadFromObjectFile("SlidedPyramid.obj");
+	this->myFigure.LoadFromObjectFile("SlidedPyramid3.obj");
 }
 
 void My3DWidget::updateObserver(const float value, const char axisName) {

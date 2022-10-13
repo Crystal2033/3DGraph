@@ -12,15 +12,4 @@ public:
     virtual void notifyObservers() = 0;
 };
 
-//class ImageSubject : public InterfaceSubject
-//{
-//public:
-//    ImageSubject();
-//    void addObserver(InterfaceObserver* observer) override;
-//    void removeObserver(InterfaceObserver* observer) override;
-//    void notify() override;
-//    ~ImageSubject() = default;
-
-//};
-
 #endif // SUBJECT_H
