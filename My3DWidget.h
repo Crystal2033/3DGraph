@@ -6,9 +6,11 @@
 #include "graphicPrimitives.h"
 #include "TransformMatrix.h"
 #include <algorithm>
+#include "Observer.h"
+
 #define THETA_ADDITIONAL 0.005
 
-class My3DWidget  : public QWidget
+class My3DWidget  : public QWidget, public InterfaceObserver
 {
 	Q_OBJECT
 
@@ -16,6 +18,8 @@ public:
 	My3DWidget(QWidget *parent);
 
 private:
+	void updateObserver(const float value, const char axisName);
+
 	void setBackColor(const QColor& color);
 	void paintEvent(QPaintEvent* event) override;
 
@@ -30,8 +34,11 @@ private:
 
 	GraphicObject myFigure;
 	float fTheta = 0.0;
+	float xFTheta = 0.0;
+	float yFTheta = 0.0;
+	float zFTheta = 0.0;
 
-	glm::vec4 camera = {0, 0, 0 , 0};
+	glm::vec4 camera = {0, 0, 0 ,0};
 
 	~My3DWidget();
 
