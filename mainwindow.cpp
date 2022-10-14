@@ -12,7 +12,7 @@ mainwindow::mainwindow(QWidget *parent)
     mainLayout->addWidget(engineWidget);
     this->centralWidget()->setLayout(mainLayout);
     menuHorLayout = new QHBoxLayout();
-
+ 
     setAxisSliders();
     mainLayout->addLayout(menuHorLayout);
 }
@@ -56,4 +56,8 @@ void mainwindow::setZAxisSlider() {
     zAxisSlider = new AxisSlider();
     zAxisSlider->createAxisSlider(*menuHorLayout, 'Z');
     zAxisSlider->addObserver(engineWidget);
+}
+
+void mainwindow::keyPressEvent(QKeyEvent* pe) {
+    engineWidget->keyPressEvent(pe);
 }

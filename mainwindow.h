@@ -34,4 +34,7 @@ private:
 
     QPalette* palette = nullptr;
     My3DWidget* engineWidget = nullptr;
+
+
+    void keyPressEvent(QKeyEvent* pe) override;
 };

@@ -7,8 +7,9 @@
 #include "TransformMatrix.h"
 #include <algorithm>
 #include "Observer.h"
+#include <QKeyEvent>
 
-#define THETA_ADDITIONAL 0.005
+#define THETA_ADDITIONAL 0.005f
 
 class My3DWidget  : public QWidget, public InterfaceObserver
 {
@@ -16,7 +17,7 @@ class My3DWidget  : public QWidget, public InterfaceObserver
 
 public:
 	My3DWidget(QWidget *parent);
-
+	void keyPressEvent(QKeyEvent* pe) override;
 private:
 	void updateObserver(const float value, const char axisName);
 
@@ -29,7 +30,6 @@ private:
 	void drawTriangle(const GraphicPrimitives::Triangle& trianle, const Qt::PenStyle style);
 
 	void drawTriangle(const int x0, const int y0, const int x1, const int y1, const int x2, const int y2);
-	glm::vec4 makeMultiplication(const glm::vec4& point, const glm::mat4x4& matrix);
 	void initFigure();
 
 	GraphicObject myFigure;
@@ -38,7 +38,12 @@ private:
 	float yFTheta = 0.0;
 	float zFTheta = 0.0;
 
+	float fYaw = 0.0;
+
 	glm::vec4 camera = {0, 0, 0 ,0};
+	glm::vec4 lookDirection = { 0, 0, 0 ,0 };
+	glm::vec4 vecForward = {0,0,0,0};
+	
 
 	~My3DWidget();
 

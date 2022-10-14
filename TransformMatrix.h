@@ -60,3 +60,6 @@ public:
 	static glm::mat4x4 getRotateMatrix(const float fTheta);
 	~ZRotateMatrix() = default;
 };
+
+glm::mat4x4 matrixPointAt(glm::vec4 pos, glm::vec4 target, glm::vec4 up);
+glm::mat4x4 matrixQuickInverse(glm::mat4x4& m);

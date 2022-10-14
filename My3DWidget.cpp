@@ -34,54 +34,80 @@ void My3DWidget::paintEvent(QPaintEvent* event)
 void My3DWidget::makeProjTransform() {
 	GraphicPrimitives::Triangle projectedTrianle;
 
-	//fTheta += 1.0f * THETA_ADDITIONAL;
-
 	glm::mat4x4 xRot = XRotateMatrix::getRotateMatrix(xFTheta * (M_PI / 180) );
 	glm::mat4x4 yRot = YRotateMatrix::getRotateMatrix(yFTheta * (M_PI / 180));
 	glm::mat4x4 zRot = ZRotateMatrix::getRotateMatrix(zFTheta * (M_PI / 180));
 	
 	//std::vector<GraphicPrimitives::Triangle> trianglesToRaster;
 	glm::mat4x4 projMatrix = ProjectionMatrix::getProjMatrix(0.1f, 1000.0f, 90.0f, (float)height() / (float)width());
+	/*glm::mat4x4 isoRotX = XRotateMatrix::getRotateMatrix(35.264 * (M_PI / 180));
+	glm::mat4x4 isoRotY = YRotateMatrix::getRotateMatrix(45 * (M_PI / 180));
+	glm::mat4x4 isoProjMatrix = isoRotX*isoRotY;*/
+	
+	glm::vec4 vecUp {0, 1, 0, 0};
+	glm::vec4 vecTarget {0, 0, 1, 0};
+	
+	glm::mat4x4 matCameraRotate = YRotateMatrix::getRotateMatrix(fYaw * (M_PI / 180));
+	lookDirection = glm::transpose(matCameraRotate) * vecTarget;
+	vecTarget = camera + lookDirection;
+	glm::mat4x4 cameraMatrix = matrixPointAt(camera, vecTarget, vecUp);
+
+	//glm::mat4x4 matView = matrixQuickInverse(cameraMatrix);
+	glm::mat4x4 matView = glm::inverse(cameraMatrix);
+
+	vecForward = lookDirection * (8.0f * THETA_ADDITIONAL);
+	
 
 	for (auto& triangle : myFigure.mesh.triangles) {
-		GraphicPrimitives::Triangle projectedTrianle, translatedTrianle, triangleRotatedXYZ;
+		GraphicPrimitives::Triangle projectedTrianle, translatedTrianle, triangleRotatedXYZ, trianleViewed;
 
-		glm::mat4x4 XYZRotation = xRot *yRot *zRot ;
+		glm::mat4x4 XYZRotation = xRot *yRot *zRot;
 		
 		for (int i = 0; i < 3; i++) {
 			triangleRotatedXYZ.points[i] = triangle.points[i] * glm::transpose(XYZRotation);
 		}
-
-		translatedTrianle = triangleRotatedXYZ;
 		
 		glm::mat4x4 matTranslate = glm::translate(glm::mat4x4(1.0f), glm::vec3(0.f, 0.f, 3.f));
 		for (int i = 0; i < 3; i++) {
-			translatedTrianle.points[i] = matTranslate * translatedTrianle.points[i];
+			translatedTrianle.points[i] = matTranslate * triangleRotatedXYZ.points[i];
 		}
 
+
 		if (getVisibleNumber(translatedTrianle) < 0) {
+
 			for (int i = 0; i < 3; i++) {
-				projectedTrianle.points[i] = translatedTrianle.points[i] * glm::transpose(projMatrix);
+				trianleViewed.points[i] = matView * translatedTrianle.points[i];
+			}
+
+			for (int i = 0; i < 3; i++) {
+				projectedTrianle.points[i] = trianleViewed.points[i] * glm::transpose(projMatrix);
 
 				if (projectedTrianle.points[i].w != 0.0f) {
 					projectedTrianle.points[i] /= projectedTrianle.points[i].w;
 				}
 			}
-			
+			//for (int i = 0; i < 3; i++) {
+			//	projectedTrianle.points[i] = glm::transpose(isoProjMatrix) * trianleViewed.points[i];
+			//	/*if (projectedTrianle.points[i].w != 0.0f) {
+			//		projectedTrianle.points[i] /= projectedTrianle.points[i].w;
+			//	}*/
+			//}
+
 			glm::mat4x4 matTranslateWindow = glm::translate(glm::mat4x4(1.0f), glm::vec3(1.f, 1.f, 0.f));
 			for (int i = 0; i < 3; i++) {
 				projectedTrianle.points[i] = matTranslateWindow * projectedTrianle.points[i];
 			}
 
 			for (int i = 0; i < 3; i++) {
-
 				projectedTrianle.points[i] = projectedTrianle.points[i] * glm::vec4(0.5f * (float)width(), 0.5f * (float)height(), 0.0f, 0.0f);
 			}
 			//trianglesToRaster.push_back(projectedTrianle);
+			
 			drawTriangle(projectedTrianle, Qt::SolidLine);
 		}
 		
 	}
+	
 	/*std::sort(trianglesToRaster.begin(), trianglesToRaster.end(), [](GraphicPrimitives::Triangle& t1, GraphicPrimitives::Triangle& t2) {
 		float middleZFirst = (t1.points[0].z + t1.points[1].z + t1.points[2].z) / 3.0f;
 		float middleZSecond = (t2.points[0].z + t2.points[1].z + t2.points[2].z) / 3.0f;
@@ -120,20 +146,11 @@ void My3DWidget::drawTriangle(const int x0, const int y0, const int x1, const in
 	painter.drawLine(x2, y2, x0, y0);
 }
 
-glm::vec4 My3DWidget::makeMultiplication(const glm::vec4& point, const glm::mat4x4& matrix) {
-	glm::vec4 result = point * glm::transpose(matrix);
 
-	if (result.w != 0.0f) {
-		result.x /= result.w;
-		result.y /= result.w;
-		result.z /= result.w;
-	}
-	return result;
-}
 
 
 void My3DWidget::initFigure() {
-	this->myFigure.LoadFromObjectFile("SlidedPyramid3.obj");
+	this->myFigure.LoadFromObjectFile("SlidedPyramid4.obj");
 }
 
 void My3DWidget::updateObserver(const float value, const char axisName) {
@@ -153,6 +170,46 @@ void My3DWidget::updateObserver(const float value, const char axisName) {
 	}
 	default:
 		exit(0);
+	}
+}
+
+void My3DWidget::keyPressEvent(QKeyEvent* pe) {
+	switch (pe->key())
+	{
+	case Qt::Key::Key_S: {
+		camera.y += 8.0f * THETA_ADDITIONAL;
+		break;
+	}
+	case Qt::Key::Key_W: {
+		camera.y -= 8.0f * THETA_ADDITIONAL;
+		break;
+	}
+	case Qt::Key::Key_D: {
+		camera.x += 8.0f * THETA_ADDITIONAL;
+		break;
+	}
+	case Qt::Key::Key_A: {
+		camera.x -= 8.0f * THETA_ADDITIONAL;
+		break;
+	}
+	case Qt::Key::Key_Q: {
+		fYaw -= 100.0f * THETA_ADDITIONAL;
+		break;
+	}
+	case Qt::Key::Key_E: {
+		fYaw += 100.0f * THETA_ADDITIONAL;
+		break;
+	}
+	case Qt::Key::Key_F: {
+		camera = camera + vecForward;
+		break;
+	}
+	case Qt::Key::Key_R: {
+		camera = camera - vecForward;
+		break;
+	}
+	default:
+		break;
 	}
 }
 
